@@ -23,7 +23,7 @@ fn part_two(line: &str) -> u32 {
                 numbers
                     .iter()
                     .position(|&s| substr.starts_with(s))
-                    .map(|i| i as u32 + 1)
+                    .map(|i| u32::try_from(i).unwrap() + 1)
             })
         })
         .collect::<Vec<_>>();
@@ -44,6 +44,6 @@ fn main() {
         sum2 += part_two(&line.clone());
     }
 
-    println!("{}", sum1);
-    println!("{}", sum2);
+    println!("{sum1}");
+    println!("{sum2}");
 }
