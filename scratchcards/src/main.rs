@@ -58,10 +58,10 @@ fn part_two(input: &[Scratchcard]) -> u32 {
 fn main() {
     let input = fs::read_to_string("input.txt").unwrap();
     let lines = input.lines().collect::<Vec<_>>();
-    let cards = lines
+    let cards: Vec<Scratchcard> = lines
         .iter()
-        .map(|x| x.parse::<Scratchcard>().unwrap())
-        .collect::<Vec<_>>();
+        .map(|x| x.parse().unwrap())
+        .collect();
     println!("Part one: {}", part_one(&cards));
     println!("Part two: {}", part_two(&cards));
 }
