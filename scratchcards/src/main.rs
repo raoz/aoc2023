@@ -32,13 +32,13 @@ impl Scratchcard {
     fn points(&self) -> u32 {
         match self.matches() {
             0 => 0,
-            x => 2u32.pow(x as u32 - 1),
+            x => 2u32.pow(u32::try_from(x).unwrap() - 1),
         }
     }
 }
 
 fn part_one(input: &[Scratchcard]) -> u32 {
-    input.iter().map(|x| x.points()).sum()
+    input.iter().map(Scratchcard::points).sum()
 }
 
 fn part_two(input: &[Scratchcard]) -> u32 {
