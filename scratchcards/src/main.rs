@@ -1,7 +1,6 @@
 use std::{fs, collections::HashSet, str::FromStr};
 
 struct Scratchcard {
-    number: u32,
     winning: HashSet<u32>,
     has: HashSet<u32>,
 }
@@ -13,7 +12,6 @@ impl FromStr for Scratchcard {
         let (header, card) = s.split_once(": ").unwrap();
         let (winning, has) = card.split_once(" | ").unwrap();
         let card = Scratchcard {
-            number: header.split_whitespace().nth(1).unwrap().parse::<u32>().unwrap(),
             winning: winning.split_whitespace().map(|x| x.parse::<u32>().unwrap()).collect(),
             has: has.split_whitespace().map(|x| x.parse::<u32>().unwrap()).collect(),
         };
@@ -40,12 +38,12 @@ fn part_one(input: &[Scratchcard]) -> u32 {
 
 fn part_two(input: &[Scratchcard]) -> u32 {
     let mut result = 0;
-    let mut copy_counts = input.iter().map(|x| 1).collect::<Vec<_>>();
+    let mut copy_counts = input.iter().map(|_x| 1).collect::<Vec<_>>();
     for (i, card) in input.iter().enumerate() {
         let matches = card.matches();
         let copies = copy_counts[i];
-        for j in i+1..=i+matches {
-            copy_counts[j] += copies;
+        for copy_count in copy_counts.iter_mut().skip(i + 1).take(matches) {
+            *copy_count += copies;
         }
         result += copies;
     }
