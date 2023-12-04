@@ -42,7 +42,6 @@ fn part_one(input: &[Scratchcard]) -> u32 {
 }
 
 fn part_two(input: &[Scratchcard]) -> u32 {
-    let mut result = 0;
     let mut copy_counts = input.iter().map(|_x| 1).collect::<Vec<_>>();
     for (i, card) in input.iter().enumerate() {
         let matches = card.matches();
@@ -50,18 +49,14 @@ fn part_two(input: &[Scratchcard]) -> u32 {
         for copy_count in copy_counts.iter_mut().skip(i + 1).take(matches) {
             *copy_count += copies;
         }
-        result += copies;
     }
-    result
+    copy_counts.iter().sum()
 }
 
 fn main() {
     let input = fs::read_to_string("input.txt").unwrap();
     let lines = input.lines().collect::<Vec<_>>();
-    let cards: Vec<Scratchcard> = lines
-        .iter()
-        .map(|x| x.parse().unwrap())
-        .collect();
+    let cards: Vec<Scratchcard> = lines.iter().map(|x| x.parse().unwrap()).collect();
     println!("Part one: {}", part_one(&cards));
     println!("Part two: {}", part_two(&cards));
 }
