@@ -14,11 +14,11 @@ impl FromStr for Scratchcard {
         let card = Scratchcard {
             winning: winning
                 .split_whitespace()
-                .map(|x| x.parse::<u32>().unwrap())
+                .map(|x| x.parse().unwrap())
                 .collect(),
             has: has
                 .split_whitespace()
-                .map(|x| x.parse::<u32>().unwrap())
+                .map(|x| x.parse().unwrap())
                 .collect(),
         };
         Ok(card)
