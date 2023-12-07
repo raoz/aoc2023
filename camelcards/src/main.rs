@@ -1,4 +1,4 @@
-use std::{cmp::Reverse, fmt::Display, fs, marker::PhantomData, str::FromStr};
+use std::{cmp::Reverse, fmt::Display, fs};
 
 struct NormalHand<'a>(&'a str);
 struct JokerHand<'a>(&'a str);
@@ -21,7 +21,7 @@ impl Display for Hand {
                 11 => 'J',
                 10 => 'T',
                 0 => 'j',
-                x => std::char::from_digit(*x as u32, 10).unwrap(),
+                x => std::char::from_digit(u32::from(*x), 10).unwrap(),
             })
             .collect::<String>();
         write!(f, "{} {}", cards, self.bid)
@@ -39,7 +39,7 @@ impl<'a> From<NormalHand<'a>> for Hand {
                 'Q' => 12,
                 'J' => 11,
                 'T' => 10,
-                x => x.to_digit(10).unwrap() as u8,
+                x => u8::try_from(x.to_digit(10).unwrap()).unwrap(),
             })
             .collect::<Vec<u8>>();
         Hand {
@@ -60,7 +60,7 @@ impl<'a> From<JokerHand<'a>> for Hand {
                 'Q' => 12,
                 'J' => 0,
                 'T' => 10,
-                x => x.to_digit(10).unwrap() as u8,
+                x => u8::try_from(x.to_digit(10).unwrap()).unwrap(),
             })
             .collect::<Vec<u8>>();
         Hand {
@@ -142,7 +142,7 @@ fn calculate_score(mut hands: Vec<Hand>) -> u64 {
     hands
         .iter()
         .enumerate()
-        .map(|(i, hand)| (i + 1) as u64 * hand.bid as u64)
+        .map(|(i, hand)| (i + 1) as u64 * u64::from(hand.bid))
         .sum()
 }
 
@@ -185,11 +185,11 @@ mod tests {
 
     #[test]
     fn test_day_one() {
-        assert_eq!(part_one(TEST_INPUT), 6440)
+        assert_eq!(part_one(TEST_INPUT), 6440);
     }
 
     #[test]
     fn test_day_two() {
-        assert_eq!(part_two(TEST_INPUT), 5905)
+        assert_eq!(part_two(TEST_INPUT), 5905);
     }
 }
