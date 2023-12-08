@@ -1,5 +1,7 @@
 use std::{collections::HashMap, fs};
 
+use gcd::Gcd;
+
 struct Map {
     steps: Vec<Direction>,
     locations: Vec<String>,
@@ -62,11 +64,33 @@ fn iter_locations<'a>(
         })
 }
 
-fn iter_finishes(
+struct Cycle {
+    first_finish: u64,
+    cycle: u64,
+}
+
+impl Cycle {
+    fn combine(&self, other: &Cycle) -> Cycle {
+        let finish_difference =
+            (self.first_finish as i64 - other.first_finish as i64).unsigned_abs();
+        let gcd = self.cycle.gcd(other.cycle);
+        assert!(finish_difference % gcd == 0, "No solution");
+        (0..)
+            .map(|x| self.first_finish + x * self.cycle)
+            .find(|x| *x >= other.first_finish && (x - other.first_finish) % other.cycle == 0)
+            .map(|x| Cycle {
+                first_finish: x,
+                cycle: self.cycle * other.cycle / gcd,
+            })
+            .unwrap()
+    }
+}
+
+fn find_cycle(
     start: &str,
     steps: &[Direction],
     map: &HashMap<(String, Direction), String>,
-) -> impl Iterator<Item = u64> {
+) -> Cycle {
     let first_finish = iter_locations(start, steps, map)
         .position(|location| location.ends_with('Z'))
         .unwrap()
@@ -76,7 +100,10 @@ fn iter_finishes(
         .position(|location| location.ends_with('Z'))
         .unwrap() as u64
         + 1;
-    (0..).map(move |i| first_finish as u64 + i * cycle)
+    Cycle {
+        first_finish: first_finish as u64,
+        cycle,
+    }
 }
 
 fn part_one(input: &[&str]) -> u64 {
@@ -103,31 +130,20 @@ fn part_two(input: &[&str]) -> u64 {
         .filter(|location| location.ends_with('A'))
         .cloned()
         .collect::<Vec<_>>();
-    let mut finishes_streams = starting_nodes
-        .clone()
-        .into_iter()
-        .map(|location| iter_finishes(&location, &steps, &map))
+
+    let cycles = starting_nodes
+        .iter()
+        .map(|start| find_cycle(start, &steps, &map))
         .collect::<Vec<_>>();
 
-    let mut current_pos = 0;
-    let mut aligned_count = 0;
-    loop {
-        for stream in &mut finishes_streams {
-            let mut next_pos = stream.next().unwrap();
-            while next_pos < current_pos {
-                next_pos = stream.next().unwrap();
-            }
-            if next_pos == current_pos {
-                aligned_count += 1;
-                if aligned_count == starting_nodes.len() {
-                    return current_pos;
-                }
-            } else {
-                aligned_count = 1;
-                current_pos = next_pos;
-            }
-        }
-    }
+    let common_cycle = cycles.iter().fold(
+        Cycle {
+            first_finish: 1,
+            cycle: 1,
+        },
+        |acc, x| acc.combine(x),
+    );
+    common_cycle.first_finish
 }
 
 fn main() {
