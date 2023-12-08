@@ -71,8 +71,7 @@ struct Cycle {
 
 impl Cycle {
     fn combine(&self, other: &Cycle) -> Cycle {
-        let finish_difference =
-            (self.first_finish as i64 - other.first_finish as i64).unsigned_abs();
+        let finish_difference = self.first_finish.abs_diff(other.first_finish);
         let gcd = self.cycle.gcd(other.cycle);
         assert!(finish_difference % gcd == 0, "No solution");
         (0..)
