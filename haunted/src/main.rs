@@ -1,7 +1,13 @@
 use std::{collections::HashMap, fs};
 
-const SRC: &'static str = "AAA";
-const DEST: &'static str = "ZZZ";
+struct Map {
+    steps: Vec<Direction>,
+    locations: Vec<String>,
+    map: HashMap<(String, Direction), String>,
+}
+
+const SRC: &str = "AAA";
+const DEST: &str = "ZZZ";
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 enum Direction {
@@ -9,55 +15,104 @@ enum Direction {
     Right,
 }
 
-fn parse_input(input: &[&str]) -> (Vec<Direction>, Vec<String>, HashMap<(String, Direction), String>) {
-    let steps = input[0].chars().map(|c| match c{
-        'L' => Direction::Left,
-        'R' => Direction::Right,
-        _ => panic!("Invalid direction"),
-    }).collect();
-
+fn parse_input(input: &[&str]) -> Map {
+    let steps = input[0]
+        .chars()
+        .map(|c| match c {
+            'L' => Direction::Left,
+            'R' => Direction::Right,
+            _ => panic!("Invalid direction"),
+        })
+        .collect();
 
     let mut locations = vec![];
     let mut map = HashMap::new();
     for line in input.iter().skip(2) {
         let (key, pair) = line.split_once(" = ").unwrap();
-        let (left, right) = pair.strip_prefix('(').unwrap().strip_suffix(')').unwrap().split_once(", ").unwrap();
+        let (left, right) = pair
+            .strip_prefix('(')
+            .unwrap()
+            .strip_suffix(')')
+            .unwrap()
+            .split_once(", ")
+            .unwrap();
         locations.push(key.to_owned());
         map.insert((key.to_owned(), Direction::Left), left.to_owned());
         map.insert((key.to_owned(), Direction::Right), right.to_owned());
     }
-    (steps, locations, map)
+    Map {
+        steps,
+        locations,
+        map,
+    }
 }
 
-fn iter_locations<'a>(start: &str, steps: &'a [Direction], map: &'a HashMap<(String, Direction), String>) -> impl Iterator<Item = String> + 'a {
-    steps.iter().cycle().scan(start.to_owned(), |location, &dir| {
-        let next_location = map.get(&(location.to_string(), dir)).unwrap().to_owned();
-        *location = next_location;
-        Some(location.clone())
-    })
+fn iter_locations<'a>(
+    start: &str,
+    steps: &'a [Direction],
+    map: &'a HashMap<(String, Direction), String>,
+) -> impl Iterator<Item = String> + 'a {
+    steps
+        .iter()
+        .cycle()
+        .scan(start.to_owned(), |location, &dir| {
+            let next_location = map.get(&((*location).to_string(), dir)).unwrap().clone();
+            *location = next_location;
+            Some(location.clone())
+        })
 }
 
-fn iter_finishes(start: &str, steps: &[Direction], map: &HashMap<(String, Direction), String>) -> impl Iterator<Item = u64> {
-    let first_finish = iter_locations(start, steps, map).position(|location| location.ends_with('Z')).unwrap() as u64 + 1;
-    let cycle = iter_locations(start, steps, map).skip(first_finish as usize).position(|location| location.ends_with('Z')).unwrap() as u64 + 1;
-    (0..).map(move |i| first_finish + i * cycle)
+fn iter_finishes(
+    start: &str,
+    steps: &[Direction],
+    map: &HashMap<(String, Direction), String>,
+) -> impl Iterator<Item = u64> {
+    let first_finish = iter_locations(start, steps, map)
+        .position(|location| location.ends_with('Z'))
+        .unwrap()
+        + 1;
+    let cycle = iter_locations(start, steps, map)
+        .skip(first_finish)
+        .position(|location| location.ends_with('Z'))
+        .unwrap() as u64
+        + 1;
+    (0..).map(move |i| first_finish as u64 + i * cycle)
 }
 
 fn part_one(input: &[&str]) -> u64 {
-    let (steps,_,  map) = parse_input(input);
+    let Map {
+        steps,
+        locations: _,
+        map,
+    } = parse_input(input);
 
-    iter_locations(SRC, &steps, &map).take_while(|location| location != DEST).count() as u64 + 1
+    iter_locations(SRC, &steps, &map)
+        .take_while(|location| location != DEST)
+        .count() as u64
+        + 1
 }
 
 fn part_two(input: &[&str]) -> u64 {
-    let (steps, locations,  map) = parse_input(input);
-    let starting_nodes = locations.iter().filter(|location| location.ends_with('A')).cloned().collect::<Vec<_>>();
-    let mut finishes_streams = starting_nodes.clone().into_iter().map(|location| iter_finishes(&location,&steps, &map)).collect::<Vec<_>>();
+    let Map {
+        steps,
+        locations,
+        map,
+    } = parse_input(input);
+    let starting_nodes = locations
+        .iter()
+        .filter(|location| location.ends_with('A'))
+        .cloned()
+        .collect::<Vec<_>>();
+    let mut finishes_streams = starting_nodes
+        .clone()
+        .into_iter()
+        .map(|location| iter_finishes(&location, &steps, &map))
+        .collect::<Vec<_>>();
 
     let mut current_pos = 0;
     let mut aligned_count = 0;
     loop {
-        for stream in finishes_streams.iter_mut() {
+        for stream in &mut finishes_streams {
             let mut next_pos = stream.next().unwrap();
             while next_pos < current_pos {
                 next_pos = stream.next().unwrap();
@@ -81,7 +136,6 @@ fn main() {
     println!("Part one: {}", part_one(&input));
     println!("Part two: {}", part_two(&input));
 }
-
 
 #[cfg(test)]
 mod tests {
