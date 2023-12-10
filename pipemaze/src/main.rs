@@ -1,5 +1,4 @@
-use std::{str::FromStr, fs, fmt::Display};
-use colored::Colorize;
+use std::{fmt::Display, fs, str::FromStr};
 
 #[derive(Debug, PartialEq, Clone, Copy)]
 enum Pipe {
@@ -25,33 +24,36 @@ impl Display for Pipe {
             Pipe::SouthWest => '7',
             Pipe::StartingPoint => 'S',
         };
-        write!(f, "{}", c)
+        write!(f, "{c}")
     }
 }
 
 impl Pipe {
-    fn connects_to(&self, delta_x: i32, delta_y: i32) -> bool {
+    fn connects_to(self, delta_x: i32, delta_y: i32) -> bool {
         if delta_x.abs() + delta_y.abs() != 1 {
             return false;
         }
         match self {
-            Pipe::Ground => false,
             Pipe::NorthSouth => delta_x == 0,
             Pipe::EastWest => delta_y == 0,
             Pipe::NorthEast => delta_x == 1 || delta_y == -1,
             Pipe::NorthWest => delta_x == -1 || delta_y == -1,
             Pipe::SouthEast => delta_x == 1 || delta_y == 1,
             Pipe::SouthWest => delta_x == -1 || delta_y == 1,
-            Pipe::StartingPoint => false,
+            _ => false,
         }
-
     }
 
     fn from_connections(connections: &[(i32, i32)]) -> Pipe {
-        if connections.len() != 2 {
-            panic!("Invalid connections")
-        }
-        for pipe in [Pipe::NorthSouth, Pipe::EastWest, Pipe::NorthEast, Pipe::NorthWest, Pipe::SouthEast, Pipe::SouthWest] {
+        assert!(connections.len() == 2, "Invalid connections");
+        for pipe in [
+            Pipe::NorthSouth,
+            Pipe::EastWest,
+            Pipe::NorthEast,
+            Pipe::NorthWest,
+            Pipe::SouthEast,
+            Pipe::SouthWest,
+        ] {
             if connections.iter().all(|(x, y)| pipe.connects_to(*x, *y)) {
                 return pipe;
             }
@@ -93,9 +95,11 @@ impl FromStr for Grid {
             }
             grid.push(row);
         }
-        Ok(Grid { grid, starting_point })
+        Ok(Grid {
+            grid,
+            starting_point,
+        })
     }
-
 }
 
 impl Grid {
@@ -104,7 +108,12 @@ impl Grid {
 
         let mut connections = vec![];
 
-        for (x, y) in [(start_x - 1, start_y), (start_x  + 1, start_y), (start_x, start_y - 1), (start_x, start_y + 1)] {
+        for (x, y) in [
+            (start_x - 1, start_y),
+            (start_x + 1, start_y),
+            (start_x, start_y - 1),
+            (start_x, start_y + 1),
+        ] {
             if let Some(pipe) = self.get(x, y) {
                 if pipe.connects_to(start_x - x, start_y - y) {
                     connections.push((x - start_x, y - start_y));
@@ -119,7 +128,9 @@ impl Grid {
         if x < 0 || y < 0 {
             return None;
         }
-        self.grid.get(y as usize).and_then(|row| row.get(x as usize))
+        self.grid
+            .get(y as usize)
+            .and_then(|row| row.get(x as usize))
     }
 
     fn get_loop(&self) -> Vec<(i32, i32)> {
@@ -139,12 +150,18 @@ impl Grid {
                     came_from = (-delta_x, -delta_y);
                     break;
                 }
-            }            
+            }
         }
         result
     }
 
-    fn count_loop_hits(&self, pos: (i32, i32), step_x: i32, step_y: i32, loop_tiles: &[(i32, i32)]) -> usize {
+    fn count_loop_hits(
+        &self,
+        pos: (i32, i32),
+        step_x: i32,
+        step_y: i32,
+        loop_tiles: &[(i32, i32)],
+    ) -> usize {
         let mut result = 0;
 
         let (mut x, mut y) = pos;
@@ -155,34 +172,38 @@ impl Grid {
             y += step_y;
             if loop_tiles.contains(&(x - step_x, y - step_y)) {
                 match (pipe, step_x.abs(), step_y.abs()) {
-                    (Pipe::NorthSouth, 1, _) => result += 1,
-                    (Pipe::EastWest, _, 1) => result += 1,
-                    (Pipe::NorthSouth, _, 1) => continue,
-                    (Pipe::EastWest, 1, _) => continue,
+                    (Pipe::NorthSouth, 1, _) | (Pipe::EastWest, _, 1) => result += 1,
+                    (Pipe::NorthSouth, _, 1) | (Pipe::EastWest, 1, _) => continue,
                     (pipe, _, _) => {
                         if let Some(start_wall) = open_wall {
                             match (start_wall, pipe, step_x.abs(), step_y.abs()) {
-                                (Pipe::NorthEast, Pipe::NorthWest, _, 1) => result += 1,
-                                (Pipe::NorthWest, Pipe::NorthEast, _, 1) => result += 1,
-                                (Pipe::SouthWest, Pipe::SouthEast, _, 1) => result += 1,
-                                (Pipe::SouthEast, Pipe::SouthWest, _, 1) => result += 1,
-                                (Pipe::NorthEast, Pipe::SouthWest, _, 1) => result += 1,
-                                (Pipe::SouthWest, Pipe::NorthEast, _, 1) => result += 1,
-                                (Pipe::NorthWest, Pipe::SouthEast, _, 1) => result += 1,
-                                (Pipe::SouthEast, Pipe::NorthWest, _, 1) => result += 1,
+                                (
+                                    Pipe::NorthEast | Pipe::SouthEast,
+                                    Pipe::NorthWest | Pipe::SouthWest,
+                                    _,
+                                    1,
+                                )
+                                | (
+                                    Pipe::NorthWest | Pipe::SouthWest,
+                                    Pipe::NorthEast | Pipe::SouthEast,
+                                    _,
+                                    1,
+                                )
+                                | (
+                                    Pipe::NorthEast | Pipe::NorthWest,
+                                    Pipe::SouthEast | Pipe::SouthWest,
+                                    1,
+                                    _,
+                                )
+                                | (
+                                    Pipe::SouthEast | Pipe::SouthWest,
+                                    Pipe::NorthEast | Pipe::NorthWest,
+                                    1,
+                                    _,
+                                ) => result += 1,
 
-                                (Pipe::NorthEast, Pipe::SouthEast, 1, _) => result += 1,
-                                (Pipe::SouthEast, Pipe::NorthEast, 1, _) => result += 1,
-                                (Pipe::NorthWest, Pipe::SouthWest, 1, _) => result += 1,
-                                (Pipe::SouthWest, Pipe::NorthWest, 1, _) => result += 1,
-                                (Pipe::NorthEast, Pipe::SouthWest, 1, _) => result += 1,
-                                (Pipe::SouthWest, Pipe::NorthEast, 1, _) => result += 1,
-                                (Pipe::NorthWest, Pipe::SouthEast, 1, _) => result += 1,
-                                (Pipe::SouthEast, Pipe::NorthWest, 1, _) => result += 1,
-
-                                (_, Pipe::EastWest, _, _) => continue,
-                                (_, Pipe::NorthSouth, _, _) => continue,
-                                _ => {},
+                                (_, Pipe::EastWest | Pipe::NorthSouth, _, _) => continue,
+                                _ => {}
                             }
                         } else {
                             open_wall = Some(*pipe);
@@ -201,10 +222,10 @@ impl Grid {
         if loop_tiles.contains(&(x, y)) {
             return false;
         }
-        self.count_loop_hits((x, y), 1, 0, loop_tiles) % 2 == 1 &&
-        self.count_loop_hits((x, y), -1, 0, loop_tiles) % 2 == 1 &&
-        self.count_loop_hits((x, y), 0, 1, loop_tiles) % 2 == 1 &&
-        self.count_loop_hits((x, y), 0, -1, loop_tiles) % 2 == 1
+        self.count_loop_hits((x, y), 1, 0, loop_tiles) % 2 == 1
+            && self.count_loop_hits((x, y), -1, 0, loop_tiles) % 2 == 1
+            && self.count_loop_hits((x, y), 0, 1, loop_tiles) % 2 == 1
+            && self.count_loop_hits((x, y), 0, -1, loop_tiles) % 2 == 1
     }
 }
 
@@ -227,16 +248,8 @@ fn part_two(input: &str) -> usize {
         for x in 0..grid.grid[0].len() {
             if grid.is_contained_by_loop(x as i32, y as i32, &grid_loop) {
                 result += 1;
-                print!("{}", "I".red());
-            } else {
-                let mut tile_str = grid.get(x as i32, y as i32).unwrap().to_string();
-                if grid_loop.contains(&(x as i32, y as i32)) {
-                    tile_str = tile_str.blue().to_string();
-                }
-                print!("{}", tile_str);
             }
         }
-        println!();
     }
 
     result
@@ -248,49 +261,70 @@ fn main() {
     println!("Part two: {}", part_two(&input));
 }
 
-
 #[cfg(test)]
 mod tests {
     use super::*;
 
     #[test]
     fn test_part_one_simple() {
-        assert_eq!(part_one(r#".....
+        assert_eq!(
+            part_one(
+                r#".....
 .S-7.
 .|.|.
 .L-J.
-....."#), 4);
+....."#
+            ),
+            4
+        );
     }
     #[test]
     fn test_part_one_simple_debris() {
-        assert_eq!(part_one(r#"-L|F7
+        assert_eq!(
+            part_one(
+                r#"-L|F7
 7S-7|
 L|7||
 -L-J|
-L|-JF"#), 4);
+L|-JF"#
+            ),
+            4
+        );
     }
 
     #[test]
     fn test_part_one_complex() {
-        assert_eq!(part_one(r#"..F7.
+        assert_eq!(
+            part_one(
+                r#"..F7.
 .FJ|.
 SJ.L7
 |F--J
-LJ..."#), 8);
+LJ..."#
+            ),
+            8
+        );
     }
 
     #[test]
     fn test_part_one_complex_debris() {
-        assert_eq!(part_one(r#"7-F7-
+        assert_eq!(
+            part_one(
+                r#"7-F7-
 .FJ|7
 SJLL7
 |F--J
-LJ.LJ"#), 8);
+LJ.LJ"#
+            ),
+            8
+        );
     }
 
     #[test]
     fn test_part_two_simple() {
-        assert_eq!(part_two(r#"...........
+        assert_eq!(
+            part_two(
+                r#"...........
 .S-------7.
 .|F-----7|.
 .||.....||.
@@ -298,12 +332,17 @@ LJ.LJ"#), 8);
 .|L-7.F-J|.
 .|..|.|..|.
 .L--J.L--J.
-..........."#), 4);
+..........."#
+            ),
+            4
+        );
     }
 
     #[test]
     fn test_part_two_larger() {
-        assert_eq!(part_two(r#".F----7F7F7F7F-7....
+        assert_eq!(
+            part_two(
+                r#".F----7F7F7F7F-7....
 .|F--7||||||||FJ....
 .||.FJ||||||||L7....
 FJL7L7LJLJ||LJ.L-7..
@@ -312,12 +351,17 @@ L--J.L7...LJS7F-7L7.
 ....L7.F7||L7|.L7L7|
 .....|FJLJ|FJ|F7|.LJ
 ....FJL-7.||.||||...
-....L---J.LJ.LJLJ..."#), 8);
+....L---J.LJ.LJLJ..."#
+            ),
+            8
+        );
     }
 
     #[test]
     fn test_part_two_debris() {
-        assert_eq!(part_two(r#"FF7FSF7F7F7F7F7F---7
+        assert_eq!(
+            part_two(
+                r#"FF7FSF7F7F7F7F7F---7
 L|LJ||||||||||||F--J
 FL-7LJLJ||||||LJL-77
 F--JF--7||LJLJ7F7FJ-
@@ -326,6 +370,9 @@ L---JF-JLJ.||-FJLJJ7
 |FFJF7L7F-JF7|JL---7
 7-L-JL7||F7|L7F-7F7|
 L.L7LFJ|||||FJL7||LJ
-L7JLJL-JLJLJL--JLJ.L"#), 10);
-    }   
+L7JLJL-JLJLJL--JLJ.L"#
+            ),
+            10
+        );
+    }
 }
