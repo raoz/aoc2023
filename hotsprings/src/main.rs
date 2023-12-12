@@ -1,61 +1,59 @@
-use std::{fs, iter::repeat};
+use std::{fs, iter::repeat, collections::HashMap};
 
-fn test_bitsets(n: usize, func: impl Fn(&[bool]) -> bool) -> usize {
-    let mut count = 0;
-    let mut bitset = vec![false; n];
-    loop {
-        if func(&bitset) {
-            count += 1
-        }
-        let mut i = 0;
-        while i < n && bitset[i] {
-            bitset[i] = false;
-            i += 1;
-        }
-        if i == n {
-            break;
-        }
-        bitset[i] = true;
+
+fn count_options(records: &str, correct_counts: &[usize], cache: &mut HashMap<(usize, usize), usize>) -> usize {
+    let cache_key = (records.len(), correct_counts.len());
+    if let Some(val) = cache.get(&cache_key) {
+        return *val;
     }
-    count
-}
-
-fn count_options(records: &str, correct_counts: Vec<usize>) -> usize {
-    let question_marks = records.chars().filter(|c| *c == '?').count();
-    test_bitsets(question_marks, |bitset| {
-        let mut counts = vec![];
-        let mut current_count = 0;
-        let mut current_bitset_index = 0;
-        for c in records.chars() {
-            let c = match c {
-                '?' => {
-                    current_bitset_index += 1;
-                    if bitset[current_bitset_index - 1] {
-                        '#'
-                    } else {
-                        '.'
-                    }
-                }
-                x => x,
-            };
-
-            if c == '#' {
+    if correct_counts.is_empty() {
+        return if records.chars().all(|c| c != '#') { 1 } else { 0 };
+    }
+    let needed_records = correct_counts.iter().sum::<usize>() + correct_counts.len() - 1;
+    if records.len() < needed_records {
+        return 0;
+    }
+    let mut ways = 0;
+    let mut current_count = 0;
+    for (i, c) in records.chars().enumerate() {
+        match c {
+            '#' => {
                 current_count += 1;
-            } else {
-                if current_count > 0 {
-                    counts.push(current_count);
-                    if counts.len() > correct_counts.len() {
-                        return false;
-                    }
-                }
-                current_count = 0;
             }
+            '.' => {
+                if current_count == correct_counts[0] {
+                    let res = ways + count_options(&records[i+1..], &correct_counts[1..], cache);
+                    cache.insert(cache_key, res);
+                    return res;
+                }
+                if current_count != 0 {
+                    cache.insert(cache_key, ways);
+                    return ways;
+                }
+            }
+            '?' => {
+                if current_count == 0 {
+                    ways += count_options(&records[i+1..], correct_counts, cache);
+                }
+                if current_count == correct_counts[0] {
+                    ways += count_options(&records[i+1..], &correct_counts[1..],cache);
+                }
+                current_count += 1;
+            }
+            _ => unreachable!(),
         }
-        if current_count > 0 {
-            counts.push(current_count);
+        
+        if current_count > correct_counts[0] {
+            cache.insert(cache_key, ways);
+            return ways;
         }
-        counts == correct_counts
-    })
+    }
+    if [current_count] == correct_counts {
+        cache.insert(cache_key, ways + 1);
+        return ways + 1;
+    }
+    cache.insert(cache_key, ways);
+    return ways;
 }
 
 fn part_one(input: &[&str]) -> usize {
@@ -66,9 +64,9 @@ fn part_one(input: &[&str]) -> usize {
             .split(',')
             .map(|s| s.parse::<usize>().unwrap())
             .collect::<Vec<_>>();
-        let result = count_options(records, correct_counts);
+        let mut cache = HashMap::new();
+        let result = count_options(records, &correct_counts, &mut cache);
         total += result;
-        println!("{}: {}", line, result)
     }
     total
 }
@@ -84,9 +82,9 @@ fn part_two(input: &[&str]) -> usize {
 
         let records = repeat(records).take(5).collect::<Vec<_>>().join("?");
         let correct_counts = repeat(correct_counts).take(5).flatten().collect::<Vec<_>>();
-        let result = count_options(&records, correct_counts);
+        let mut cache = HashMap::new();
+        let result = count_options(&records, &correct_counts, &mut cache);
         total += result;
-        println!("{}: {}", line, result)
     }
     total
 }
@@ -110,6 +108,23 @@ mod tests {
         "????.######..#####. 1,6,5",
         "?###???????? 3,2,1",
     ];
+
+    #[test]
+    fn test_simple() {
+        assert_eq!(count_options("??", &[1], &mut HashMap::new()), 2);
+        assert_eq!(count_options("???", &[1], &mut HashMap::new()), 3);
+        assert_eq!(count_options("?#?", &[1], &mut HashMap::new()), 1);
+        assert_eq!(count_options("???", &[1, 1], &mut HashMap::new()), 1);
+        assert_eq!(count_options("????", &[1, 2], &mut HashMap::new()), 1);
+        assert_eq!(count_options("??.??", &[1, 2], &mut HashMap::new()), 2);
+        assert_eq!(count_options("???.??", &[1, 2], &mut HashMap::new()), 3);
+        assert_eq!(count_options("???.???", &[1, 2], &mut HashMap::new()), 6);
+    }
+
+    #[test]
+    fn test_tricky() {
+        assert_eq!(count_options("??????.??#.", &[2,3], &mut HashMap::new()), 5)
+    }
 
     #[test]
     fn test_part_one() {
