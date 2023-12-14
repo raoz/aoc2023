@@ -1,4 +1,4 @@
-use std::{fs};
+use std::fs;
 
 fn perform_shift(input: &[String]) -> Vec<String> {
     let mut result: Vec<String> = Vec::new();
@@ -10,22 +10,21 @@ fn perform_shift(input: &[String]) -> Vec<String> {
                 '#' => {
                     support_levels[j] = i as i64;
                     new_line.push('#');
-                },
+                }
                 '.' => {
                     new_line.push('.');
-                },
+                }
                 'O' => {
                     support_levels[j] += 1;
                     if support_levels[j] as usize == i {
                         new_line.push('O');
                     } else {
                         new_line.push('.');
-                        unsafe{
+                        unsafe {
                             result[support_levels[j] as usize].as_bytes_mut()[j] = b'O';
                         }
                     }
-                    
-                },
+                }
                 _ => panic!("Unknown character {c}"),
             }
         }
@@ -51,20 +50,25 @@ fn calculate_load_level(input: &[String]) -> u64 {
     for (i, line) in input.iter().enumerate() {
         for (_j, c) in line.chars().enumerate() {
             match c {
-                '#' | '.' => {},
+                '#' | '.' => {}
                 'O' => {
                     total_load += input.len() as u64 - i as u64;
-                },
+                }
                 _ => panic!("Unknown character {c}"),
             }
         }
-
     }
     total_load
 }
 
 fn part_one(input: &[&str]) -> u64 {
-    let shifted = perform_shift(input.iter().map(|s| (*s).to_string()).collect::<Vec<String>>().as_slice());
+    let shifted = perform_shift(
+        input
+            .iter()
+            .map(|s| (*s).to_string())
+            .collect::<Vec<String>>()
+            .as_slice(),
+    );
     calculate_load_level(&shifted)
 }
 
@@ -82,7 +86,10 @@ fn perform_cycle(input: &[String]) -> Vec<String> {
 
 fn part_two(input: &[&str]) -> u64 {
     let mut hash_map = std::collections::HashMap::new();
-    let mut intermediate_value = input.iter().map(|s| (*s).to_string()).collect::<Vec<String>>();
+    let mut intermediate_value = input
+        .iter()
+        .map(|s| (*s).to_string())
+        .collect::<Vec<String>>();
     hash_map.insert(intermediate_value.join(""), 0);
 
     for iter in 1..=1_000_000 {
@@ -97,7 +104,7 @@ fn part_two(input: &[&str]) -> u64 {
             return calculate_load_level(&intermediate_value);
         }
     }
-    unreachable!();
+    calculate_load_level(&intermediate_value)
 }
 
 fn main() {
@@ -107,22 +114,21 @@ fn main() {
     println!("Part two: {}", part_two(&input));
 }
 
-
 #[cfg(test)]
 mod tests {
     use super::*;
 
     const TEST_INPUT: &[&str] = &[
-"O....#....",
-"O.OO#....#",
-".....##...",
-"OO.#O....O",
-".O.....O#.",
-"O.#..O.#.#",
-"..O..#O..O",
-".......O..",
-"#....###..",
-"#OO..#....",
+        "O....#....",
+        "O.OO#....#",
+        ".....##...",
+        "OO.#O....O",
+        ".O.....O#.",
+        "O.#..O.#.#",
+        "..O..#O..O",
+        ".......O..",
+        "#....###..",
+        "#OO..#....",
     ];
 
     #[test]
