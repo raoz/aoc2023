@@ -1,5 +1,7 @@
 use std::{fmt::Display, fs, str::FromStr};
 
+use colored::{Colorize, ColoredString};
+
 #[derive(Debug, PartialEq, Clone, Copy)]
 enum Pipe {
     Ground,
@@ -16,12 +18,12 @@ impl Display for Pipe {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         let c = match self {
             Pipe::Ground => '.',
-            Pipe::NorthSouth => '|',
-            Pipe::EastWest => '-',
-            Pipe::NorthEast => 'L',
-            Pipe::NorthWest => 'J',
-            Pipe::SouthEast => 'F',
-            Pipe::SouthWest => '7',
+            Pipe::NorthSouth => '│',
+            Pipe::EastWest => '─',
+            Pipe::NorthEast => '└',
+            Pipe::NorthWest => '┘',
+            Pipe::SouthEast => '┌',
+            Pipe::SouthWest => '┐',
             Pipe::StartingPoint => 'S',
         };
         write!(f, "{c}")
@@ -223,9 +225,6 @@ impl Grid {
             return false;
         }
         self.count_loop_hits((x, y), 1, 0, loop_tiles) % 2 == 1
-            && self.count_loop_hits((x, y), -1, 0, loop_tiles) % 2 == 1
-            && self.count_loop_hits((x, y), 0, 1, loop_tiles) % 2 == 1
-            && self.count_loop_hits((x, y), 0, -1, loop_tiles) % 2 == 1
     }
 }
 
@@ -246,10 +245,17 @@ fn part_two(input: &str) -> usize {
 
     for y in 0..grid.grid.len() {
         for x in 0..grid.grid[0].len() {
+            let mut tile_str: ColoredString = grid.get(x as i32, y as i32).unwrap().to_string().into();
             if grid.is_contained_by_loop(x as i32, y as i32, &grid_loop) {
+                tile_str = tile_str.blue();
                 result += 1;
             }
+            if grid_loop.contains(&(x as i32, y as i32)) {
+                tile_str = tile_str.red();
+            }
+            print!("{}", tile_str);
         }
+        println!();
     }
 
     result
