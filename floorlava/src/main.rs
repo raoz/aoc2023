@@ -25,7 +25,6 @@ impl Beam {
     }
 }
 
-
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 enum TileKind {
     Open,
@@ -60,86 +59,124 @@ impl Tile {
     fn visit(&mut self, beam: &Beam) -> Vec<Beam> {
         self.entry_directions.push(beam.direction);
         match self.kind {
-            TileKind::Open => {
-                match beam.direction {
-                    Direction::Up => {
-                        vec![Beam::new(Direction::Up, (beam.position.0, beam.position.1 - 1))]
-                    },
-                    Direction::Down => {
-                        vec![Beam::new(Direction::Down, (beam.position.0, beam.position.1 + 1))]
-                    },
-                    Direction::Left => {
-                        vec![Beam::new(Direction::Left, (beam.position.0 - 1, beam.position.1))]
-                    },
-                    Direction::Right => {
-                        vec![Beam::new(Direction::Right, (beam.position.0 + 1, beam.position.1))]
-                    },
+            TileKind::Open => match beam.direction {
+                Direction::Up => {
+                    vec![Beam::new(
+                        Direction::Up,
+                        (beam.position.0, beam.position.1 - 1),
+                    )]
+                }
+                Direction::Down => {
+                    vec![Beam::new(
+                        Direction::Down,
+                        (beam.position.0, beam.position.1 + 1),
+                    )]
+                }
+                Direction::Left => {
+                    vec![Beam::new(
+                        Direction::Left,
+                        (beam.position.0 - 1, beam.position.1),
+                    )]
+                }
+                Direction::Right => {
+                    vec![Beam::new(
+                        Direction::Right,
+                        (beam.position.0 + 1, beam.position.1),
+                    )]
                 }
             },
-            TileKind::ForwardMirror => {
-                match beam.direction {
-                    Direction::Up => {
-                        vec![Beam::new(Direction::Right, (beam.position.0 + 1, beam.position.1))]
-                    },
-                    Direction::Down => {
-                        vec![Beam::new(Direction::Left, (beam.position.0 - 1, beam.position.1))]
-                    },
-                    Direction::Left => {
-                        vec![Beam::new(Direction::Down, (beam.position.0, beam.position.1 + 1))]
-                    },
-                    Direction::Right => {
-                        vec![Beam::new(Direction::Up, (beam.position.0, beam.position.1 - 1))]
-                    },
+            TileKind::ForwardMirror => match beam.direction {
+                Direction::Up => {
+                    vec![Beam::new(
+                        Direction::Right,
+                        (beam.position.0 + 1, beam.position.1),
+                    )]
+                }
+                Direction::Down => {
+                    vec![Beam::new(
+                        Direction::Left,
+                        (beam.position.0 - 1, beam.position.1),
+                    )]
+                }
+                Direction::Left => {
+                    vec![Beam::new(
+                        Direction::Down,
+                        (beam.position.0, beam.position.1 + 1),
+                    )]
+                }
+                Direction::Right => {
+                    vec![Beam::new(
+                        Direction::Up,
+                        (beam.position.0, beam.position.1 - 1),
+                    )]
                 }
             },
-            TileKind::BackwardMirror => {
-                match beam.direction {
-                    Direction::Up => {
-                        vec![Beam::new(Direction::Left, (beam.position.0 - 1, beam.position.1))]
-                    },
-                    Direction::Down => {
-                        vec![Beam::new(Direction::Right, (beam.position.0 + 1, beam.position.1))]
-                    },
-                    Direction::Left => {
-                        vec![Beam::new(Direction::Up, (beam.position.0, beam.position.1 - 1))]
-                    },
-                    Direction::Right => {
-                        vec![Beam::new(Direction::Down, (beam.position.0, beam.position.1 + 1))]
-                    },
+            TileKind::BackwardMirror => match beam.direction {
+                Direction::Up => {
+                    vec![Beam::new(
+                        Direction::Left,
+                        (beam.position.0 - 1, beam.position.1),
+                    )]
+                }
+                Direction::Down => {
+                    vec![Beam::new(
+                        Direction::Right,
+                        (beam.position.0 + 1, beam.position.1),
+                    )]
+                }
+                Direction::Left => {
+                    vec![Beam::new(
+                        Direction::Up,
+                        (beam.position.0, beam.position.1 - 1),
+                    )]
+                }
+                Direction::Right => {
+                    vec![Beam::new(
+                        Direction::Down,
+                        (beam.position.0, beam.position.1 + 1),
+                    )]
                 }
             },
-            TileKind::VerticalSplitter => {
-                match beam.direction {
-                    Direction::Up => {
-                        vec![Beam::new(Direction::Up, (beam.position.0, beam.position.1 - 1))]
-                    }
-                    Direction::Down => {
-                        vec![Beam::new(Direction::Down, (beam.position.0, beam.position.1 + 1))]
-                    }
-                    Direction::Left => {
-                        vec![Beam::new(Direction::Up, (beam.position.0, beam.position.1 - 1)), Beam::new(Direction::Down, (beam.position.0, beam.position.1 + 1))]
-                    }
-                    Direction::Right => {
-                        vec![Beam::new(Direction::Up, (beam.position.0, beam.position.1 - 1)), Beam::new(Direction::Down, (beam.position.0, beam.position.1 + 1))]
-                    }
+            TileKind::VerticalSplitter => match beam.direction {
+                Direction::Up => {
+                    vec![Beam::new(
+                        Direction::Up,
+                        (beam.position.0, beam.position.1 - 1),
+                    )]
                 }
-            }
-            TileKind::HorizontalSplitter => {
-                match beam.direction {
-                    Direction::Up => {
-                        vec![Beam::new(Direction::Left, (beam.position.0 - 1, beam.position.1)), Beam::new(Direction::Right, (beam.position.0 + 1, beam.position.1))]
-                    }
-                    Direction::Down => {
-                        vec![Beam::new(Direction::Left, (beam.position.0 - 1, beam.position.1)), Beam::new(Direction::Right, (beam.position.0 + 1, beam.position.1))]
-                    }
-                    Direction::Left => {
-                        vec![Beam::new(Direction::Left, (beam.position.0 - 1, beam.position.1))]
-                    }
-                    Direction::Right => {
-                        vec![Beam::new(Direction::Right, (beam.position.0 + 1, beam.position.1))]
-                    }
+                Direction::Down => {
+                    vec![Beam::new(
+                        Direction::Down,
+                        (beam.position.0, beam.position.1 + 1),
+                    )]
                 }
-            }
+                Direction::Left | Direction::Right => {
+                    vec![
+                        Beam::new(Direction::Up, (beam.position.0, beam.position.1 - 1)),
+                        Beam::new(Direction::Down, (beam.position.0, beam.position.1 + 1)),
+                    ]
+                }
+            },
+            TileKind::HorizontalSplitter => match beam.direction {
+                Direction::Up | Direction::Down => {
+                    vec![
+                        Beam::new(Direction::Left, (beam.position.0 - 1, beam.position.1)),
+                        Beam::new(Direction::Right, (beam.position.0 + 1, beam.position.1)),
+                    ]
+                }
+                Direction::Left => {
+                    vec![Beam::new(
+                        Direction::Left,
+                        (beam.position.0 - 1, beam.position.1),
+                    )]
+                }
+                Direction::Right => {
+                    vec![Beam::new(
+                        Direction::Right,
+                        (beam.position.0 + 1, beam.position.1),
+                    )]
+                }
+            },
         }
     }
 }
@@ -152,7 +189,7 @@ impl From<char> for Tile {
             '\\' => Tile::new(TileKind::BackwardMirror),
             '|' => Tile::new(TileKind::VerticalSplitter),
             '-' => Tile::new(TileKind::HorizontalSplitter),
-            _ => panic!("Invalid tile {}", c),
+            _ => panic!("Invalid tile {c}"),
         }
     }
 }
@@ -175,26 +212,49 @@ fn get_energy_level_with_starting_beam(mut grid: Grid<Tile>, starting_beam: Beam
     grid.iter().filter(|t| t.energized()).count()
 }
 
-
 fn part_one(input: &str) -> usize {
     let lines = input.lines().collect::<Vec<_>>();
-    let grid = Grid::from_vec(lines.iter().flat_map(|l| l.chars().map(Tile::from)).collect::<Vec<_>>(), lines[0].len());
+    let grid = Grid::from_vec(
+        lines
+            .iter()
+            .flat_map(|l| l.chars().map(Tile::from))
+            .collect::<Vec<_>>(),
+        lines[0].len(),
+    );
 
-    get_energy_level_with_starting_beam(grid, Beam::new(Direction::Right,(0, 0)))
+    get_energy_level_with_starting_beam(grid, Beam::new(Direction::Right, (0, 0)))
 }
 
 fn part_two(input: &str) -> usize {
     let lines = input.lines().collect::<Vec<_>>();
-    let grid = Grid::from_vec(lines.iter().flat_map(|l| l.chars().map(Tile::from)).collect::<Vec<_>>(), lines[0].len());
+    let grid = Grid::from_vec(
+        lines
+            .iter()
+            .flat_map(|l| l.chars().map(Tile::from))
+            .collect::<Vec<_>>(),
+        lines[0].len(),
+    );
 
     let mut max_energy = 0;
     for i in 0..grid.rows() {
-        max_energy = max_energy.max(get_energy_level_with_starting_beam(grid.clone(), Beam::new(Direction::Right,(0, i as isize))));
-        max_energy = max_energy.max(get_energy_level_with_starting_beam(grid.clone(), Beam::new(Direction::Left,(grid.cols() as isize - 1, i as isize))));
+        max_energy = max_energy.max(get_energy_level_with_starting_beam(
+            grid.clone(),
+            Beam::new(Direction::Right, (0, i as isize)),
+        ));
+        max_energy = max_energy.max(get_energy_level_with_starting_beam(
+            grid.clone(),
+            Beam::new(Direction::Left, (grid.cols() as isize - 1, i as isize)),
+        ));
     }
     for i in 0..grid.cols() {
-        max_energy = max_energy.max(get_energy_level_with_starting_beam(grid.clone(), Beam::new(Direction::Down,(i as isize, 0))));
-        max_energy = max_energy.max(get_energy_level_with_starting_beam(grid.clone(), Beam::new(Direction::Up,(i as isize, grid.rows() as isize - 1))));
+        max_energy = max_energy.max(get_energy_level_with_starting_beam(
+            grid.clone(),
+            Beam::new(Direction::Down, (i as isize, 0)),
+        ));
+        max_energy = max_energy.max(get_energy_level_with_starting_beam(
+            grid.clone(),
+            Beam::new(Direction::Up, (i as isize, grid.rows() as isize - 1)),
+        ));
     }
     max_energy
 }
@@ -204,7 +264,6 @@ fn main() {
     println!("Part one: {}", part_one(&input));
     println!("Part two: {}", part_two(&input));
 }
-
 
 #[cfg(test)]
 mod tests {
