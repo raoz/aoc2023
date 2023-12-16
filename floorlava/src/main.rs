@@ -9,6 +9,16 @@ enum Direction {
     Left,
     Right,
 }
+impl Direction {
+    fn opposite(self) -> Direction {
+        match self {
+            Direction::Up => Direction::Down,
+            Direction::Down => Direction::Up,
+            Direction::Left => Direction::Right,
+            Direction::Right => Direction::Left,
+        }
+    }    
+}
 
 #[derive(Debug)]
 struct Beam {
@@ -66,7 +76,11 @@ impl Tile {
     }
 
     fn visited(&self, direction: Direction) -> bool {
-        self.entry_directions.contains(&direction)
+        match self.kind {
+            TileKind::Open => self.entry_directions.contains(&direction) || self.entry_directions.contains(&direction.opposite()),
+            TileKind::HorizontalSplitter | TileKind::VerticalSplitter => self.energized(),
+            _ => self.entry_directions.contains(&direction),
+        }
     }
 
     fn visit(&mut self, beam: &Beam) -> Vec<Beam> {
