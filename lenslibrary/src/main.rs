@@ -18,16 +18,18 @@ enum Operation {
     Dash(String),
 }
 
-
 impl FromStr for Operation {
     type Err = ();
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
-        if s.ends_with("-") {
+        if s.ends_with('-') {
             Ok(Operation::Dash(s[..s.len() - 1].to_string()))
         } else {
             let (key, value) = s.split_once('=').ok_or(())?;
-            Ok(Operation::Equals(key.to_string(), value.parse().map_err(|_| ())?))
+            Ok(Operation::Equals(
+                key.to_string(),
+                value.parse().map_err(|_| ())?,
+            ))
         }
     }
 }
@@ -35,8 +37,8 @@ impl FromStr for Operation {
 impl Operation {
     fn get_hash(&self) -> u64 {
         match self {
-            Operation::Equals(key, _) => hash_string(&key),
-            Operation::Dash(key) => hash_string(&key),
+            Operation::Equals(key, _) => hash_string(key),
+            Operation::Dash(key) => hash_string(key),
         }
     }
 }
@@ -54,10 +56,7 @@ fn part_one(input: &str) -> u64 {
 }
 
 fn part_two(input: &str) -> u64 {
-    let ops: Vec<Operation> = input
-        .split(',')
-        .map(|s| s.parse().unwrap())
-        .collect();
+    let ops: Vec<Operation> = input.split(',').map(|s| s.parse().unwrap()).collect();
     let mut boxes: Vec<Vec<Lens>> = vec![];
     for _ in 0..256 {
         boxes.push(vec![]);
