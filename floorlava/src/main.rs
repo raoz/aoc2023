@@ -23,6 +23,19 @@ impl Beam {
             position,
         }
     }
+
+    fn go(&self, direction: Direction) -> Beam {
+        match direction {
+            Direction::Up => Beam::new(Direction::Up, (self.position.0, self.position.1 - 1)),
+            Direction::Down => Beam::new(Direction::Down, (self.position.0, self.position.1 + 1)),
+            Direction::Left => Beam::new(Direction::Left, (self.position.0 - 1, self.position.1)),
+            Direction::Right => Beam::new(Direction::Right, (self.position.0 + 1, self.position.1)),
+        }
+    }
+
+    fn go_straight(&self) -> Beam {
+        self.go(self.direction)
+    }
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -59,123 +72,30 @@ impl Tile {
     fn visit(&mut self, beam: &Beam) -> Vec<Beam> {
         self.entry_directions.push(beam.direction);
         match self.kind {
-            TileKind::Open => match beam.direction {
-                Direction::Up => {
-                    vec![Beam::new(
-                        Direction::Up,
-                        (beam.position.0, beam.position.1 - 1),
-                    )]
-                }
-                Direction::Down => {
-                    vec![Beam::new(
-                        Direction::Down,
-                        (beam.position.0, beam.position.1 + 1),
-                    )]
-                }
-                Direction::Left => {
-                    vec![Beam::new(
-                        Direction::Left,
-                        (beam.position.0 - 1, beam.position.1),
-                    )]
-                }
-                Direction::Right => {
-                    vec![Beam::new(
-                        Direction::Right,
-                        (beam.position.0 + 1, beam.position.1),
-                    )]
-                }
-            },
+            TileKind::Open => vec![beam.go_straight()],
             TileKind::ForwardMirror => match beam.direction {
-                Direction::Up => {
-                    vec![Beam::new(
-                        Direction::Right,
-                        (beam.position.0 + 1, beam.position.1),
-                    )]
-                }
-                Direction::Down => {
-                    vec![Beam::new(
-                        Direction::Left,
-                        (beam.position.0 - 1, beam.position.1),
-                    )]
-                }
-                Direction::Left => {
-                    vec![Beam::new(
-                        Direction::Down,
-                        (beam.position.0, beam.position.1 + 1),
-                    )]
-                }
-                Direction::Right => {
-                    vec![Beam::new(
-                        Direction::Up,
-                        (beam.position.0, beam.position.1 - 1),
-                    )]
-                }
+                Direction::Up => vec![beam.go(Direction::Right)],
+                Direction::Down => vec![beam.go(Direction::Left)],
+                Direction::Left => vec![beam.go(Direction::Down)],
+                Direction::Right => vec![beam.go(Direction::Up)],
             },
             TileKind::BackwardMirror => match beam.direction {
-                Direction::Up => {
-                    vec![Beam::new(
-                        Direction::Left,
-                        (beam.position.0 - 1, beam.position.1),
-                    )]
-                }
-                Direction::Down => {
-                    vec![Beam::new(
-                        Direction::Right,
-                        (beam.position.0 + 1, beam.position.1),
-                    )]
-                }
-                Direction::Left => {
-                    vec![Beam::new(
-                        Direction::Up,
-                        (beam.position.0, beam.position.1 - 1),
-                    )]
-                }
-                Direction::Right => {
-                    vec![Beam::new(
-                        Direction::Down,
-                        (beam.position.0, beam.position.1 + 1),
-                    )]
-                }
+                Direction::Up => vec![beam.go(Direction::Left)],
+                Direction::Down => vec![beam.go(Direction::Right)],
+                Direction::Left => vec![beam.go(Direction::Up)],
+                Direction::Right => vec![beam.go(Direction::Down)],
             },
             TileKind::VerticalSplitter => match beam.direction {
-                Direction::Up => {
-                    vec![Beam::new(
-                        Direction::Up,
-                        (beam.position.0, beam.position.1 - 1),
-                    )]
-                }
-                Direction::Down => {
-                    vec![Beam::new(
-                        Direction::Down,
-                        (beam.position.0, beam.position.1 + 1),
-                    )]
-                }
+                Direction::Up | Direction::Down => vec![beam.go_straight()],
                 Direction::Left | Direction::Right => {
-                    vec![
-                        Beam::new(Direction::Up, (beam.position.0, beam.position.1 - 1)),
-                        Beam::new(Direction::Down, (beam.position.0, beam.position.1 + 1)),
-                    ]
+                    vec![beam.go(Direction::Up), beam.go(Direction::Down)]
                 }
             },
             TileKind::HorizontalSplitter => match beam.direction {
                 Direction::Up | Direction::Down => {
-                    vec![
-                        Beam::new(Direction::Left, (beam.position.0 - 1, beam.position.1)),
-                        Beam::new(Direction::Right, (beam.position.0 + 1, beam.position.1)),
-                    ]
+                    vec![beam.go(Direction::Left), beam.go(Direction::Right)]
                 }
-                Direction::Left => {
-                    vec![Beam::new(
-                        Direction::Left,
-                        (beam.position.0 - 1, beam.position.1),
-                    )]
-                }
-                Direction::Right => {
-                    vec![Beam::new(
-                        Direction::Right,
-                        (beam.position.0 + 1, beam.position.1),
-                    )]
-                }
+                Direction::Left | Direction::Right => vec![beam.go_straight()],
             },
         }
     }
