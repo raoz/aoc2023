@@ -98,12 +98,6 @@ impl Span {
             ],
         }
     }
-
-    fn up_to_spans(self) -> Vec<Span> {
-        (1..=self.len)
-            .map(|len| Span { dir: self.dir, len })
-            .collect()
-    }
 }
 
 fn parse_grid(input: &str) -> Grid<u32> {
@@ -129,10 +123,9 @@ fn min_cost(grid: &Grid<u32>, min_span: u32, max_span: u32) -> u32 {
         },
     )]);
     let mut current_bests: HashMap<(i32, i32, Span), u32> = HashMap::new();
-    let mut total_bests: HashMap<(i32, i32), u32> = HashMap::new();
     let mut visited: HashSet<(i32, i32, Span)> = HashSet::new();
 
-    'outer: while let Some((Reverse(loss), x, y, span)) = priority_queue.pop() {
+    while let Some((Reverse(loss), x, y, span)) = priority_queue.pop() {
         if visited.contains(&(x, y, span)) {
             continue;
         }
@@ -143,32 +136,8 @@ fn min_cost(grid: &Grid<u32>, min_span: u32, max_span: u32) -> u32 {
         }
         current_bests.insert((x, y, span), loss);
         visited.insert((x, y, span));
-        if span.len >= min_span {
-            if let Some(best) = total_bests.get_mut(&(x, y)) {
-                if loss < *best {
-                    *best = loss;
-                }
-            } else {
-                total_bests.insert((x, y), loss);
-            }
-        }
-
-        if vec![
-            Span {
-                dir: Direction::Right,
-                len: max_span,
-            },
-            Span {
-                dir: Direction::Down,
-                len: max_span,
-            },
-        ]
-        .iter()
-        .flat_map(|s| s.up_to_spans())
-        .filter(|s| s.len >= min_span)
-        .all(|s| visited.contains(&(grid.cols() as i32 - 1, grid.rows() as i32 - 1, s)))
-        {
-            break 'outer;
+        if span.len >= min_span && x == grid.cols() as i32 - 1 && y == grid.rows() as i32 - 1 {
+            return loss;
         }
 
         for option in span.get_options(min_span) {
@@ -193,9 +162,7 @@ fn min_cost(grid: &Grid<u32>, min_span: u32, max_span: u32) -> u32 {
         }
     }
 
-    *total_bests
-        .get(&(grid.cols() as i32 - 1, grid.rows() as i32 - 1))
-        .unwrap()
+    unreachable!()
 }
 
 fn part_one(input: &str) -> u32 {
