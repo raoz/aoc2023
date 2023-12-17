@@ -129,7 +129,6 @@ fn min_cost(grid: &Grid<u32>, min_span: u32, max_span: u32) -> u32 {
         },
     )]);
     let mut current_bests: HashMap<(i32, i32, Span), u32> = HashMap::new();
-    let mut incoming_dirs = HashMap::new();
     let mut total_bests: HashMap<(i32, i32), u32> = HashMap::new();
     let mut visited: HashSet<(i32, i32, Span)> = HashSet::new();
 
@@ -148,11 +147,9 @@ fn min_cost(grid: &Grid<u32>, min_span: u32, max_span: u32) -> u32 {
             if let Some(best) = total_bests.get_mut(&(x, y)) {
                 if loss < *best {
                     *best = loss;
-                    incoming_dirs.insert((x, y), span.dir);
                 }
             } else {
                 total_bests.insert((x, y), loss);
-                incoming_dirs.insert((x, y), span.dir);
             }
         }
 
@@ -194,22 +191,6 @@ fn min_cost(grid: &Grid<u32>, min_span: u32, max_span: u32) -> u32 {
                 ));
             }
         }
-    }
-
-    for y in 0..grid.rows() {
-        for x in 0..grid.cols() {
-            print!(
-                "{}",
-                match incoming_dirs.get(&(x as i32, y as i32)) {
-                    Some(Direction::Up) => "↑",
-                    Some(Direction::Down) => "↓",
-                    Some(Direction::Left) => "←",
-                    Some(Direction::Right) => "→",
-                    None => " ",
-                }
-            );
-        }
-        println!();
     }
 
     *total_bests
