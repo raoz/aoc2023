@@ -1,30 +1,69 @@
 use std::fs;
 
-use grid::Grid;
 use regex::Regex;
 
-fn parse_contour(input: &str) -> Vec<(i64, i64)> {
+struct Instruction {
+    direction: char,
+    distance: i64,
+}
+
+impl Instruction {
+    fn from_normal_string(input: &str) -> Instruction {
+        let re = Regex::new(r"^([RLUD])\W(\d+)").unwrap();
+        let captures = re.captures(input).unwrap();
+        let direction = captures.get(1).unwrap().as_str().to_string();
+        let distance = captures.get(2).unwrap().as_str().parse::<i64>().unwrap();
+        Instruction {
+            direction: direction.chars().next().unwrap(),
+            distance,
+        }
+    }
+
+    fn from_swapped_string(input: &str) -> Instruction {
+        let re = Regex::new(r"\(#(.+)\)$").unwrap();
+        let captures = re.captures(input).unwrap();
+        let hex = captures.get(1).unwrap().as_str();
+        // parse hex
+        let distance = i64::from_str_radix(&hex[..5], 16).unwrap();
+        let direction = match hex.chars().last().unwrap() {
+            '0' => 'R',
+            '1' => 'D',
+            '2' => 'L',
+            '3' => 'U',
+            _ => panic!("Invalid direction"),
+        };
+        Instruction {
+            direction,
+            distance,
+        }
+    }
+}
+
+fn parse_contour(input: &str, swap_len_hex: bool) -> Vec<(i64, i64)> {
     let mut contour = vec![(0, 0)];
     let mut current_x = 0;
     let mut current_y = 0;
-    let re = Regex::new(r"^([RLUD])\W(\d+)\W\(#(.+)\)$").unwrap();
 
-    for line in input.lines() {
-        let Some((_, [direction, distance, _color_code])) =
-            re.captures(line).map(|caps| caps.extract())
-        else {
-            panic!("Invalid input: {}", line);
-        };
+    let parser = if swap_len_hex {
+        Instruction::from_swapped_string
+    } else {
+        Instruction::from_normal_string
+    };
 
-        let distance = distance.parse::<i64>().unwrap();
+    for instruction in input.lines().map(parser) {
+        let Instruction {
+            direction,
+            distance,
+        } = instruction;
+
         current_x += match direction {
-            "R" => distance,
-            "L" => -distance,
+            'R' => distance,
+            'L' => -distance,
             _ => 0,
         };
         current_y += match direction {
-            "U" => -distance,
-            "D" => distance,
+            'U' => -distance,
+            'D' => distance,
             _ => 0,
         };
         contour.push((current_x, current_y));
@@ -34,16 +73,9 @@ fn parse_contour(input: &str) -> Vec<(i64, i64)> {
     contour
 }
 
-fn in_segment(segment: ((i64, i64), (i64, i64)), point: (i64, i64)) -> bool {
-    let ((x1, y1), (x2, y2)) = segment;
-    let (x, y) = point;
-    if x1 == x2 {
-        let (y1, y2) = if y1 < y2 { (y1, y2) } else { (y2, y1) };
-        x == x1 && y1 <= y && y <= y2
-    } else {
-        let (x1, x2) = if x1 < x2 { (x1, x2) } else { (x2, x1) };
-        y == y1 && x1 <= x && x <= x2
-    }
+fn horizontally_intersects(segment: ((i64, i64), (i64, i64)), y: i64) -> bool {
+    let ((_, y1), (_, y2)) = segment;
+    y1.min(y2) <= y && y < y1.max(y2)
 }
 
 fn contour_area(contour: &Vec<(i64, i64)>) -> u64 {
@@ -52,88 +84,80 @@ fn contour_area(contour: &Vec<(i64, i64)>) -> u64 {
         .map(|window| (window[0], window[1]))
         .collect::<Vec<_>>();
 
-    let min_x = *contour.iter().map(|(x, _)| x).min().unwrap();
+    let vert_segments = segments
+        .iter()
+        .filter(|((x1, _), (x2, _))| x1 == x2)
+        .map(|segment| *segment)
+        .collect::<Vec<_>>();
+    let hor_segments = segments
+        .iter()
+        .filter(|((_, y1), (_, y2))| y1 == y2)
+        .map(|segment| *segment)
+        .collect::<Vec<_>>();
+
     let min_y = *contour.iter().map(|(_, y)| y).min().unwrap();
-    let max_x = *contour.iter().map(|(x, _)| x).max().unwrap();
     let max_y = *contour.iter().map(|(_, y)| y).max().unwrap();
 
     let mut total_area = 0;
 
     for y in min_y..=max_y {
+        let mut prev_point = 0;
         let mut inside = false;
-        let mut wall_lenght = 0;
-        let mut prev_up = false;
-        for x in min_x..=max_x {
-            if segments.iter().any(|segment| in_segment(*segment, (x, y))) {
-                total_area += 1;
-                if wall_lenght == 0 {
-                    prev_up = segments
-                        .iter()
-                        .any(|segment| in_segment(*segment, (x, y - 1)));
-                    inside = !inside;
-                }
-                wall_lenght += 1;
-                print!("#");
-            } else {
-                if wall_lenght > 1 {
-                    let up = segments
-                        .iter()
-                        .any(|segment| in_segment(*segment, (x - 1, y - 1)));
-                    if up == prev_up {
-                        inside = !inside;
-                    }
-                }
-                total_area += if inside { 1 } else { 0 };
-                wall_lenght = 0;
-                if inside {
-                    print!("+");
-                } else {
-                    print!(".");
+
+        let mut xs = vert_segments
+            .iter()
+            .filter(|&&v| horizontally_intersects(v, y))
+            .map(|((x, _), _)| *x)
+            .collect::<Vec<_>>();
+        xs.sort();
+
+        let horizontal_walls = hor_segments
+            .iter()
+            .filter(|&&h| h.0 .1 == y)
+            .map(|((x1, _), (x2, _))| (*x1.min(x2), *x1.max(x2)))
+            .collect::<Vec<_>>();
+
+        total_area += horizontal_walls
+            .iter()
+            .map(|(x1, x2)| -> u64 { (x2 - x1 + 1).try_into().unwrap() })
+            .sum::<u64>();
+
+        for x in xs {
+            if inside {
+                let segment_area: u64 = (x - prev_point + 1).try_into().unwrap();
+                total_area += segment_area;
+                let contained_walls = horizontal_walls
+                    .iter()
+                    .filter(|(x1, x2)| *x1 <= x && *x2 >= prev_point);
+                for (x1, x2) in contained_walls {
+                    let a = (*x1).max(prev_point);
+                    let b = (*x2).min(x);
+                    let double_counted_area: u64 = (b - a + 1).try_into().unwrap();
+                    total_area -= double_counted_area;
                 }
             }
+            inside = !inside;
+            prev_point = x;
         }
-        println!();
+        assert_eq!(inside, false);
     }
     total_area
 }
 
 fn part_one(input: &str) -> u64 {
-    let contour = parse_contour(input);
-    let min_x = contour.iter().map(|(x, _)| x).min().unwrap();
-    let min_y = contour.iter().map(|(_, y)| y).min().unwrap();
-    let max_x = contour.iter().map(|(x, _)| x).max().unwrap();
-    let max_y = contour.iter().map(|(_, y)| y).max().unwrap();
+    let contour = parse_contour(input, false);
+    contour_area(&contour)
+}
 
-    let mut map: Grid<bool> = Grid::new(
-        (max_y - min_y + 1).try_into().unwrap(),
-        (max_x - min_x + 1).try_into().unwrap(),
-    );
-
-    for window in contour.windows(2) {
-        let [(x1, y1), (x2, y2)] = window else {
-            unreachable!()
-        };
-        let (x1, y1) = (x1 - min_x, y1 - min_y);
-        let (x2, y2) = (x2 - min_x, y2 - min_y);
-        if x1 == x2 {
-            let (y1, y2) = if y1 < y2 { (y1, y2) } else { (y2, y1) };
-            for y in y1..=y2 {
-                map[(y.try_into().unwrap(), x1.try_into().unwrap())] = true;
-            }
-        } else {
-            let (x1, x2) = if x1 < x2 { (x1, x2) } else { (x2, x1) };
-            for x in x1..=x2 {
-                map[(y1.try_into().unwrap(), x.try_into().unwrap())] = true;
-            }
-        }
-    }
-
+fn part_two(input: &str) -> u64 {
+    let contour = parse_contour(input, true);
     contour_area(&contour)
 }
 
 fn main() {
     let input = fs::read_to_string("input.txt").expect("Error reading input.txt");
     println!("Part one: {}", part_one(&input));
+    println!("Part two: {}", part_two(&input));
 }
 
 #[cfg(test)]
@@ -171,5 +195,10 @@ U 3 (#aaaaaa)"#
             ),
             16
         );
+    }
+
+    #[test]
+    fn test_part_two() {
+        assert_eq!(part_two(TEST_INPUT), 952408144115)
     }
 }
