@@ -78,7 +78,7 @@ fn horizontally_intersects(segment: ((i64, i64), (i64, i64)), y: i64) -> bool {
     y1.min(y2) <= y && y < y1.max(y2)
 }
 
-fn contour_area(contour: &Vec<(i64, i64)>) -> u64 {
+fn contour_area(contour: &[(i64, i64)]) -> u64 {
     let segments = contour
         .windows(2)
         .map(|window| (window[0], window[1]))
@@ -87,12 +87,12 @@ fn contour_area(contour: &Vec<(i64, i64)>) -> u64 {
     let vert_segments = segments
         .iter()
         .filter(|((x1, _), (x2, _))| x1 == x2)
-        .map(|segment| *segment)
+        .copied()
         .collect::<Vec<_>>();
     let hor_segments = segments
         .iter()
         .filter(|((_, y1), (_, y2))| y1 == y2)
-        .map(|segment| *segment)
+        .copied()
         .collect::<Vec<_>>();
 
     let min_y = *contour.iter().map(|(_, y)| y).min().unwrap();
@@ -109,7 +109,7 @@ fn contour_area(contour: &Vec<(i64, i64)>) -> u64 {
             .filter(|&&v| horizontally_intersects(v, y))
             .map(|((x, _), _)| *x)
             .collect::<Vec<_>>();
-        xs.sort();
+        xs.sort_unstable();
 
         let horizontal_walls = hor_segments
             .iter()
@@ -139,7 +139,7 @@ fn contour_area(contour: &Vec<(i64, i64)>) -> u64 {
             inside = !inside;
             prev_point = x;
         }
-        assert_eq!(inside, false);
+        assert!(!inside);
     }
     total_area
 }
@@ -181,7 +181,7 @@ U 2 (#7a21e3)"#;
 
     #[test]
     fn test_part_one() {
-        assert_eq!(part_one(TEST_INPUT), 62)
+        assert_eq!(part_one(TEST_INPUT), 62);
     }
 
     #[test]
@@ -199,6 +199,6 @@ U 3 (#aaaaaa)"#
 
     #[test]
     fn test_part_two() {
-        assert_eq!(part_two(TEST_INPUT), 952408144115)
+        assert_eq!(part_two(TEST_INPUT), 952_408_144_115);
     }
 }
