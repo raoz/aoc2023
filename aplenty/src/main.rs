@@ -1,6 +1,5 @@
-use std::{fs, str::FromStr};
-
 use regex::Regex;
+use std::{fmt::Display, fs, str::FromStr};
 
 const FIRST_WORKFLOW: &str = "in";
 
@@ -9,6 +8,66 @@ struct Item {
     m: i64,
     a: i64,
     s: i64,
+}
+
+#[derive(Debug, Clone)]
+struct OpenRange {
+    start: i64,
+    end: i64,
+}
+
+impl OpenRange {
+    fn new(start: i64, end: i64) -> Self {
+        Self { start, end }
+    }
+    fn empty() -> Self {
+        Self { start: 0, end: 0 }
+    }
+
+    fn count(&self) -> u64 {
+        if self.end <= self.start {
+            0
+        } else {
+            (self.end - self.start - 1).try_into().unwrap()
+        }
+    }
+}
+
+impl Display for OpenRange {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "({}, {})", self.start, self.end)
+    }
+}
+
+#[derive(Debug, Clone)]
+struct AbstractItem {
+    x: OpenRange,
+    m: OpenRange,
+    a: OpenRange,
+    s: OpenRange,
+}
+
+impl AbstractItem {
+    fn empty() -> Self {
+        Self {
+            x: OpenRange::empty(),
+            m: OpenRange::empty(),
+            a: OpenRange::empty(),
+            s: OpenRange::empty(),
+        }
+    }
+    fn count(&self) -> u64 {
+        self.x.count() * self.m.count() * self.a.count() * self.s.count()
+    }
+}
+impl Display for AbstractItem {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(
+            f,
+            "{{x={}, m={}, a={}, s={}}}",
+            self.x, self.m, self.a, self.s
+        )
+    }
 }
 
 impl Item {
@@ -122,6 +181,74 @@ impl Rule {
             Rule::Unconditional(outcome) => Some(outcome.clone()),
         }
     }
+
+    fn accepting_items(&self, abstract_item: &AbstractItem, workflows: &[Workflow]) -> u64 {
+        match self {
+            Rule::Unconditional(Outcome::Accept) => abstract_item.count(),
+            Rule::Unconditional(Outcome::Reject) => 0,
+            Rule::Unconditional(Outcome::Call(fun)) => workflows
+                .iter()
+                .find(|workflow| workflow.name == *fun)
+                .unwrap()
+                .accepting_items(abstract_item, workflows),
+            Rule::Condition {
+                param,
+                operator,
+                value,
+                outcome,
+            } => {
+                let mut new_abstract_item = abstract_item.clone();
+                let param_range = match param {
+                    'x' => &mut new_abstract_item.x,
+                    'm' => &mut new_abstract_item.m,
+                    'a' => &mut new_abstract_item.a,
+                    's' => &mut new_abstract_item.s,
+                    _ => panic!("Invalid param {param}"),
+                };
+                match operator {
+                    '<' => param_range.end = param_range.end.min(*value),
+                    '>' => param_range.start = param_range.start.max(*value),
+                    _ => panic!("Invalid operator {operator}"),
+                };
+                match outcome {
+                    Outcome::Accept => new_abstract_item.count(),
+                    Outcome::Reject => 0,
+                    Outcome::Call(fun) => workflows
+                        .iter()
+                        .find(|workflow| workflow.name == *fun)
+                        .unwrap()
+                        .accepting_items(&new_abstract_item, workflows),
+                }
+            }
+        }
+    }
+
+    fn non_matching_items(&self, abstract_item: &AbstractItem) -> AbstractItem {
+        match self {
+            Rule::Condition {
+                param,
+                operator,
+                value,
+                outcome: _,
+            } => {
+                let mut new_abstract_item = abstract_item.clone();
+                let param_range = match param {
+                    'x' => &mut new_abstract_item.x,
+                    'm' => &mut new_abstract_item.m,
+                    'a' => &mut new_abstract_item.a,
+                    's' => &mut new_abstract_item.s,
+                    _ => panic!("Invalid param {param}"),
+                };
+                match operator {
+                    '<' => param_range.start = param_range.start.max(*value - 1),
+                    '>' => param_range.end = param_range.end.min(*value + 1),
+                    _ => panic!("Invalid operator {operator}"),
+                };
+                new_abstract_item
+            }
+            Rule::Unconditional(_) => AbstractItem::empty(),
+        }
+    }
 }
 
 struct Workflow {
@@ -150,6 +277,19 @@ impl Workflow {
     fn apply(&self, item: &Item) -> Outcome {
         self.rules.iter().find_map(|rule| rule.apply(item)).unwrap()
     }
+
+    fn accepting_items(&self, abstract_item: &AbstractItem, workflows: &[Workflow]) -> u64 {
+        let mut total = 0;
+        let mut item = abstract_item.clone();
+        for rule in &self.rules {
+            total += rule.accepting_items(&item, workflows);
+            item = rule.non_matching_items(&item);
+            if item.count() == 0 {
+                break;
+            }
+        }
+        total
+    }
 }
 
 fn part_one(input: &str) -> i64 {
@@ -170,9 +310,32 @@ fn part_one(input: &str) -> i64 {
         .sum()
 }
 
+fn part_two(input: &str) -> u64 {
+    let (workflows_str, _) = input.split_once("\n\n").unwrap();
+    let workflows = workflows_str
+        .lines()
+        .map(|line| line.parse::<Workflow>().unwrap())
+        .collect::<Vec<_>>();
+
+    let start_workflow = workflows
+        .iter()
+        .find(|workflow| workflow.name == FIRST_WORKFLOW)
+        .unwrap();
+
+    let abstract_item = AbstractItem {
+        x: OpenRange::new(0, 4001),
+        m: OpenRange::new(0, 4001),
+        a: OpenRange::new(0, 4001),
+        s: OpenRange::new(0, 4001),
+    };
+
+    start_workflow.accepting_items(&abstract_item, &workflows)
+}
+
 fn main() {
     let input = fs::read_to_string("input.txt").unwrap();
     println!("Part one: {}", part_one(&input));
+    println!("Part two: {}", part_two(&input));
 }
 
 #[cfg(test)]
@@ -222,5 +385,10 @@ hdj{m>838:A,pv}
     #[test]
     fn test_part_one() {
         assert_eq!(part_one(EXAMPLE), 19114);
+    }
+
+    #[test]
+    fn test_part_two() {
+        assert_eq!(part_two(EXAMPLE), 167409079868000);
     }
 }
